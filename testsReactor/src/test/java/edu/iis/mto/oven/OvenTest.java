@@ -65,6 +65,7 @@ class OvenTest {
 	@Test
 	void ovenShouldInvokeHeatingProgram() throws HeatingException {
 		{
+			stages.clear();
 			stages.add(ProgramStage.builder().withTargetTemp(180).withHeat(HeatType.GRILL).withStageTime(60).build());
 			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(60).build());
 			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(40).build());
@@ -76,4 +77,19 @@ class OvenTest {
 		}
 	}
 
+	@Test
+	void withoutTermoCirculationFanShouldBeOff() throws HeatingException {
+		{
+			stages.clear();
+			stages.add(ProgramStage.builder().withTargetTemp(180).withHeat(HeatType.GRILL).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(40).build());
+			bakingProgram = BakingProgram.builder().withStages(stages).withInitialTemp(initialTemp).withCoolAtFinish(false).build();
+
+			oven.runProgram(bakingProgram);
+
+			verify(fan, times(0)).on();
+			assertFalse(fan.isOn());
+		}
+	}
 }
