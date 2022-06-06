@@ -55,6 +55,22 @@ class OvenTest {
 	}
 
 	@Test
+	void fanShouldBeOff() {
+		{
+			stages.clear();
+			stages.add(ProgramStage.builder().withTargetTemp(180).withHeat(HeatType.GRILL).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(40).build());
+			bakingProgram = BakingProgram.builder().withStages(stages).withInitialTemp(initialTemp).withCoolAtFinish(false).build();
+
+			oven.runProgram(bakingProgram);
+
+			verify(fan, times(0)).on();
+			assertFalse(fan.isOn());
+		}
+	}
+
+	@Test
 	void ovenHasProblemWithHeating() throws HeatingException {
 		doThrow(HeatingException.class).when(heatingModule).heater(any());
 		BakingResult result = oven.runProgram(bakingProgram);
@@ -77,19 +93,4 @@ class OvenTest {
 		}
 	}
 
-	@Test
-	void withoutTermoCirculationFanShouldBeOff() throws HeatingException {
-		{
-			stages.clear();
-			stages.add(ProgramStage.builder().withTargetTemp(180).withHeat(HeatType.GRILL).withStageTime(60).build());
-			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(60).build());
-			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(40).build());
-			bakingProgram = BakingProgram.builder().withStages(stages).withInitialTemp(initialTemp).withCoolAtFinish(false).build();
-
-			oven.runProgram(bakingProgram);
-
-			verify(fan, times(0)).on();
-			assertFalse(fan.isOn());
-		}
-	}
 }
