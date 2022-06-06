@@ -2,17 +2,64 @@ package edu.iis.mto.oven;
 
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @ExtendWith(MockitoExtension.class)
 class OvenTest {
 
-    @Test
-    void itCompiles() {
-        assertThat(true, equalTo(true));
-    }
+	@Mock
+	private HeatingModule heatingModule;
+	@Mock
+	private Fan fan;
+	private Oven oven;
+	private BakingProgram bakingProgram;
 
+	List<ProgramStage> stages;
+	int initialTemp;
+
+	@BeforeEach
+	void setUp() {
+		oven = new Oven(heatingModule, fan);
+		stages = new ArrayList<>();
+		stages.add(ProgramStage.builder().withTargetTemp(150).withStageTime(30).withHeat(HeatType.THERMO_CIRCULATION).build());
+		stages.add(ProgramStage.builder().withTargetTemp(200).withStageTime(45).withHeat(HeatType.THERMO_CIRCULATION).build());
+		stages.add(ProgramStage.builder().withTargetTemp(170).withStageTime(20).withHeat(HeatType.THERMO_CIRCULATION).build());
+		initialTemp = 100;
+		bakingProgram = BakingProgram.builder().withStages(stages).withInitialTemp(initialTemp).withCoolAtFinish(true).build();
+	}
+
+	@Test
+	void checkWithoutErrors() {
+		BakingResult result = oven.runProgram(bakingProgram);
+		assertTrue(result.isSuccess());
+	}
+
+	@Test
+	void ovenShouldInvokeFan() {
+		oven.runProgram(bakingProgram);
+		verify(fan, times(4)).on();
+		verify(fan, times(3)).off();
+	}
+
+	@Test
+	void ovenHasProblemWithHeating() throws HeatingException {
+		doThrow(HeatingException.class).when(heatingModule).heater(any());
+
+		BakingResult result = oven.runProgram(bakingProgram);
+
+		assertFalse(result.isSuccess());
+	}
 }
