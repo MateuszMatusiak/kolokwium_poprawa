@@ -1,5 +1,10 @@
 package edu.iis.mto.oven;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
+import edu.iis.mto.oven.BakingResult.Builder;
+
 public class Oven {
 
     static final int HEAT_UP_AND_FINISH_SETTING_TIME = 0;
@@ -11,12 +16,28 @@ public class Oven {
         this.fan = fan;
     }
 
-    public void runProgram(BakingProgram program) {
-        init(program.getInitialTemp());
+    public BakingResult runProgram(BakingProgram program) {
+        Map<ProgramStage, Boolean> stageCompletnes = new LinkedHashMap<>();
         for (ProgramStage programStage : program) {
-            runStage(programStage);
+            stageCompletnes.put(programStage, false);
         }
-        cool(program);
+        Builder builder = BakingResult.builder()
+                                      .withSourceProgram(program)
+                                      .withStageCompletenes(stageCompletnes);
+        try {
+            init(program.getInitialTemp());
+            for (ProgramStage programStage : program) {
+                runStage(programStage);
+                stageCompletnes.put(programStage, true);
+
+            }
+            cool(program);
+            builder.withSuccess(true);
+        } catch (HeatingException e) {
+            builder.withSuccess(false);
+            builder.withErrorMessage(e.getMessage());
+        }
+        return builder.build();
     }
 
     private void cool(BakingProgram program) {
@@ -25,33 +46,25 @@ public class Oven {
         }
     }
 
-    private void init(int initialTemp) {
+    private void init(int initialTemp) throws HeatingException {
         if (initialTemp > 0) {
-            try {
-                heatingModule.heater(HeatingSettings.builder()
-                                                    .withTargetTemp(initialTemp)
-                                                    .withTimeInMinutes(HEAT_UP_AND_FINISH_SETTING_TIME)
-                                                    .build());
-            } catch (HeatingException e) {
-                throw new OvenException(e);
-            }
+            heatingModule.heater(HeatingSettings.builder()
+                                                .withTargetTemp(initialTemp)
+                                                .withTimeInMinutes(HEAT_UP_AND_FINISH_SETTING_TIME)
+                                                .build());
         }
     }
 
-    private void runStage(ProgramStage programStage) {
-        try {
-            if (programStage.getHeat() == HeatType.THERMO_CIRCULATION) {
-                fan.on();
-                heatingModule.termalCircuit(settings(programStage));
+    private void runStage(ProgramStage programStage) throws HeatingException {
+        if (programStage.getHeat() == HeatType.THERMO_CIRCULATION) {
+            fan.on();
+            heatingModule.termalCircuit(settings(programStage));
+            fan.off();
+        } else {
+            if (fan.isOn()) {
                 fan.off();
-            } else {
-                if (fan.isOn()) {
-                    fan.off();
-                }
-                runHeatingProgram(programStage);
             }
-        } catch (HeatingException e) {
-            throw new OvenException(e);
+            runHeatingProgram(programStage);
         }
     }
 

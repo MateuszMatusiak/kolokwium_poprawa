@@ -3,6 +3,7 @@ package edu.iis.mto.oven;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 public class BakingProgram implements Iterable<ProgramStage> {
 
@@ -28,6 +29,26 @@ public class BakingProgram implements Iterable<ProgramStage> {
 
     public boolean isCoolAtFinish() {
         return coolAtFinish;
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(coolAtFinish, initialTemp, stages);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        BakingProgram other = (BakingProgram) obj;
+        return coolAtFinish == other.coolAtFinish && initialTemp == other.initialTemp && Objects.equals(stages, other.stages);
     }
 
     public static Builder builder() {
