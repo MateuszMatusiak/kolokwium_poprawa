@@ -42,7 +42,7 @@ class OvenTest {
 	}
 
 	@Test
-	void checkWithoutErrors() {
+	void checkEverythingOK() {
 		BakingResult result = oven.runProgram(bakingProgram);
 		assertTrue(result.isSuccess());
 	}
@@ -57,9 +57,23 @@ class OvenTest {
 	@Test
 	void ovenHasProblemWithHeating() throws HeatingException {
 		doThrow(HeatingException.class).when(heatingModule).heater(any());
-
 		BakingResult result = oven.runProgram(bakingProgram);
 
 		assertFalse(result.isSuccess());
 	}
+
+	@Test
+	void ovenShouldInvokeHeatingProgram() throws HeatingException {
+		{
+			stages.add(ProgramStage.builder().withTargetTemp(180).withHeat(HeatType.GRILL).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(60).build());
+			stages.add(ProgramStage.builder().withTargetTemp(100).withHeat(HeatType.HEATER).withStageTime(40).build());
+			bakingProgram = BakingProgram.builder().withStages(stages).withInitialTemp(initialTemp).withCoolAtFinish(true).build();
+
+			oven.runProgram(bakingProgram);
+			verify(heatingModule, times(1)).grill(any());
+			verify(heatingModule, times(3)).heater(any());
+		}
+	}
+
 }
